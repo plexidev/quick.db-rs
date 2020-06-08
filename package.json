@@ -1,0 +1,14 @@
+{
+  "name": "quickdb",
+  "version": "0.1.0",
+  "description": "Simple sqlite3 wrapper",
+  "main": "lib/index.js",
+  "author": "Zoro <zorotic@pm.me>",
+  "license": "MIT",
+  "dependencies": {
+    "neon-cli": "^0.4.0"
+  },
+  "scripts": {
+    "install": "neon build"
+  }
+}
