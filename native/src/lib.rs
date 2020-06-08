@@ -29,6 +29,10 @@ impl QuickDB {
     pub fn set(&self, key: String, value: String) -> Result<usize> {
         self.conn.execute("INSERT INTO data (key,value) VALUES (?1,?2)", params![key, value])
     }
+
+    pub fn delete(&self, key: String) -> Result<usize> {
+        self.conn.execute("DELETE FROM data WHERE key = ?1", params![key])
+    }
 }
 
 pub struct TableFactory {
@@ -92,7 +96,20 @@ declare_types! {
             let this = c.this();
             let guard = c.lock();
 
-            match this.borrow(&guard).set(key.clone(), value.clone()) {
+            match this.borrow(&guard).set(key, value) {
+                Ok(result) => result,
+                Err(e) => panic!("{}", e),
+            };
+
+            Ok(c.undefined().upcast())
+        }
+
+        method delete(mut c) {
+            let key = c.argument::<JsString>(0)?.value();
+            let this = c.this();
+            let guard = c.lock();
+
+            match this.borrow(&guard).delete(key) {
                 Ok(result) => result,
                 Err(e) => panic!("{}", e),
             };
