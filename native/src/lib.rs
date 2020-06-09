@@ -1,16 +1,15 @@
 use neon::prelude::*;
-use rusqlite::{params, Connection, Result};
-
-
-struct QueryResult {
-    key: String,
-    value: String,
-}
+use sqlite::*;
 
 pub struct QuickDB {
     pub table: String,
     conn: Connection,
 }
+
+// pub struct QuickDBRow {
+//     key: String,
+//     value: String,
+// }
 
 impl QuickDB {
 
@@ -18,38 +17,45 @@ impl QuickDB {
         println!("Table: {}, key: {}", self.table, key);
     }
 
-    pub fn init(&self) -> Result<usize> {
-        self.conn.execute("PRAGMA synchronous = OFF", params![])?;
-        self.conn.execute(
-            "CREATE TABLE IF NOT EXISTS data (key TEXT PRIMARY KEY, value TEXT)",
-            params![]
-        )
+    pub fn init(&self) -> () {
+        self.conn.execute("PRAGMA synchronous = OFF;").unwrap();
+        self.conn.execute(format!("CREATE TABLE IF NOT EXISTS {} (key TEXT PRIMARY KEY, value TEXT);", self.table)).unwrap()
     }
 
-    pub fn set(&self, key: String, value: String) -> Result<usize> {
-        self.conn.execute("INSERT INTO data (key,value) VALUES (?1,?2)", params![key, value])
+    pub fn set(&self, key: String, value: String) -> () {
+        self.conn.execute(format!("INSERT INTO {} VALUES ('{}', '{}');", self.table, key, value)).unwrap()
     }
 
-    pub fn delete(&self, key: String) -> Result<usize> {
-        self.conn.execute("DELETE FROM data WHERE key = ?1", params![key])
+    pub fn delete(&self, key: String) -> usize {
+        self.conn.prepare(format!("DELETE FROM {} WHERE key = '{}';", self.table, key)).unwrap().count()
+    }
+
+    pub fn get(&self, key: String) -> String {
+        let mut stmt = self.conn.prepare(format!("SELECT * FROM {} WHERE key = '{}';", self.table, key)).unwrap();
+
+        let mut val: String = String::new();
+        while let State::Row = stmt.next().unwrap() {
+            val = stmt.read::<String>(1).unwrap();
+        };
+
+        val
     }
 }
 
-pub struct TableFactory {
-}
+pub struct TableFactory {}
 
 impl TableFactory {
     pub fn new() -> Self {
         TableFactory {}
     }
 
-    pub fn create(&self, table: String) -> Result<QuickDB> {
-        let conn = Connection::open("./data/data.db")?;
+    pub fn create(&self, table: String, path: String) -> QuickDB {
+        let conn = Connection::open(path).unwrap();
 
-        Ok(QuickDB {
+        QuickDB {
             table: table,
             conn: conn,
-        })
+        }
     }
 }
 
@@ -58,14 +64,12 @@ declare_types! {
         init(mut c) {
             let factory = c.argument::<JsTableFactory>(0)?;
             let table = c.argument::<JsString>(1)?.value();
+            let path = c.argument::<JsString>(2)?.value();
 
             let guard = c.lock();
             let factory = factory.borrow(&guard);
 
-            match factory.create(table) {
-                Ok(created) => Ok(created),
-                _ => panic!("Something weird happened."),
-            }
+            Ok(factory.create(table, path))
         }
 
         method test(mut c) {
@@ -82,10 +86,7 @@ declare_types! {
             let this = c.this();
             let guard = c.lock();
 
-            match this.borrow(&guard).init() {
-                Ok(result) => result,
-                Err(e) => panic!("{}", e),
-            };
+            this.borrow(&guard).init();
 
             Ok(c.undefined().upcast())
         }
@@ -96,10 +97,7 @@ declare_types! {
             let this = c.this();
             let guard = c.lock();
 
-            match this.borrow(&guard).set(key, value) {
-                Ok(result) => result,
-                Err(e) => panic!("{}", e),
-            };
+            this.borrow(&guard).set(key, value);
 
             Ok(c.undefined().upcast())
         }
@@ -109,12 +107,19 @@ declare_types! {
             let this = c.this();
             let guard = c.lock();
 
-            match this.borrow(&guard).delete(key) {
-                Ok(result) => result,
-                Err(e) => panic!("{}", e),
-            };
+            this.borrow(&guard).delete(key);
 
             Ok(c.undefined().upcast())
+        }
+
+        method get(mut c) {
+            let key = c.argument::<JsString>(0)?.value();
+            let this = c.this();
+            let guard = c.lock();
+
+            let value = this.borrow(&guard).get(key);
+
+            Ok(c.string(&value).upcast())
         }
 
     }
@@ -126,9 +131,10 @@ declare_types! {
 
         method create(mut c) {
             let table = c.argument::<JsValue>(0)?;
+            let path = c.argument::<JsValue>(1)?;
             let this = c.this().upcast();
 
-            Ok(JsQuickDB::new(&mut c, vec![this, table])?.upcast())
+            Ok(JsQuickDB::new(&mut c, vec![this, table, path])?.upcast())
         }
     }
 }
@@ -139,3 +145,4 @@ register_module!(mut cx, {
 
     Ok(())
 });
+

@@ -1,5 +1,5 @@
 {
-  "name": "quickdb",
+  "name": "quick.db",
   "version": "0.1.0",
   "description": "Simple sqlite3 wrapper",
   "main": "lib/index.js",
