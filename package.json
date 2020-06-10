@@ -10,5 +10,6 @@
   },
   "scripts": {
     "install": "neon build"
-  }
+  },
+  "types": "./typings/index.d.ts"
 }

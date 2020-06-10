@@ -7,3 +7,6 @@ native/artifacts.json
 
 *.sqlite
 lib/data
+data/
+
+test.*

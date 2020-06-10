@@ -6,11 +6,6 @@ pub struct QuickDB {
     conn: Connection,
 }
 
-// pub struct QuickDBRow {
-//     key: String,
-//     value: String,
-// }
-
 impl QuickDB {
 
     pub fn test(&self, key: &str) {
@@ -19,7 +14,8 @@ impl QuickDB {
 
     pub fn init(&self) -> () {
         self.conn.execute("PRAGMA synchronous = OFF;").unwrap();
-        self.conn.execute(format!("CREATE TABLE IF NOT EXISTS {} (key TEXT PRIMARY KEY, value TEXT);", self.table)).unwrap()
+        self.conn.execute("PRAGMA temp_store = MEMORY;").unwrap();
+        self.conn.execute(format!("CREATE TABLE IF NOT EXISTS {} (key TEXT NOT NULL PRIMARY KEY ON CONFLICT IGNORE, value TEXT);", self.table)).unwrap()
     }
 
     pub fn set(&self, key: String, value: String) -> () {
