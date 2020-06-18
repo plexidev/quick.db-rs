@@ -6,6 +6,11 @@ pub struct QuickDB {
     conn: Connection,
 }
 
+pub struct Row {
+    key: String,
+    value: String
+}
+
 impl QuickDB {
 
     pub fn test(&self, key: &str) {
@@ -35,6 +40,20 @@ impl QuickDB {
         };
 
         val
+    }
+
+    pub fn get_all(&self) -> Vec<Row> {
+        let mut vec: Vec<Row> = Vec::new();
+        let mut stmt = self.conn.prepare(format!("SELECT * FROM {}", self.table)).unwrap();
+
+        while let State::Row = stmt.next().unwrap() {
+            vec.push(Row {
+                key: stmt.read::<String>(0).unwrap(),
+                value: stmt.read::<String>(1).unwrap()
+            })
+        };
+
+        vec
     }
 }
 
@@ -116,6 +135,30 @@ declare_types! {
             let value = this.borrow(&guard).get(key);
 
             Ok(c.string(&value).upcast())
+        }
+
+        method get_all(mut c) {
+            let this = c.this();
+            let guard = c.lock();
+
+            let vec = this.borrow(&guard).get_all();
+            let arr = JsArray::new(&mut c, vec.len() as u32);
+
+            vec.iter().enumerate().for_each(|e| {
+                let (i, row) = e;
+                let obj = JsObject::new(&mut c);
+
+
+                let sval = c.string(&row.value);
+                let skey = c.string(&row.key);
+
+                obj.set(&mut c, "key", skey).unwrap();
+                obj.set(&mut c, "value", sval).unwrap();
+
+                arr.set(&mut c, i as u32, obj).unwrap();
+            });
+
+            Ok(arr.upcast())
         }
 
     }
