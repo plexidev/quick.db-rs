@@ -12,11 +12,6 @@ pub struct Row {
 }
 
 impl QuickDB {
-
-	pub fn test(&self, key: &str) {
-		println!("Table: {}, key: {}", self.table, key);
-	}
-
 	pub fn init(&self) -> () {
 		self.conn.execute("PRAGMA synchronous = OFF;").unwrap();
 		self.conn.execute("PRAGMA temp_store = MEMORY;").unwrap();
