@@ -137,8 +137,6 @@ declare_types! {
 			vec.iter().enumerate().for_each(|e| {
 				let (i, row) = e;
 				let obj = JsObject::new(&mut c);
-
-
 				let sval = c.string(&row.value);
 				let skey = c.string(&row.key);
 
@@ -168,10 +166,8 @@ declare_types! {
 	}
 }
 
-
 register_module!(mut cx, {
 	cx.export_class::<JsTableFactory>("TableFactory")?;
 
 	Ok(())
 });
-
