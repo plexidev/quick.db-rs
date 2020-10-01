@@ -87,16 +87,6 @@ declare_types! {
 			Ok(factory.create(table, path))
 		}
 
-		method test(mut c) {
-			let key = c.argument::<JsString>(0)?;
-			let this = c.this();
-			let guard = c.lock();
-
-			this.borrow(&guard).test(&key.value());
-
-			Ok(c.undefined().upcast())
-		}
-
 		method init(mut c) {
 			let this = c.this();
 			let guard = c.lock();
